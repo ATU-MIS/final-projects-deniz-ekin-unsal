@@ -1,0 +1,120 @@
+classDiagram
+direction LR
+
+%% =======================
+%% Core (no login)
+%% =======================
+class PlayerSession {
+  +sessionId: String
+  +startedAt: DateTime
+  +language: String
+  +currentLevel: Int
+  +startLevel(levelNo)
+  +saveProgress()
+}
+
+class Mission {
+  +id: String
+  +levelNo: Int
+  +title: String
+  +storyText: String
+  +isActive: Boolean
+}
+
+class Task {
+  +id: String
+  +instructionText: String
+  +expectedResultHash: String
+}
+
+class Hint {
+  +id: String
+  +text: String
+}
+
+PlayerSession "1" -- "0..*" Mission : plays
+Mission "1" *-- "1..*" Task : contains
+Task "1" *-- "0..*" Hint : has
+
+%% =======================
+%% Submission & feedback
+%% =======================
+class Submission {
+  +id: String
+  +sqlText: String
+  +submittedAt: DateTime
+  +status: SubmissionStatus
+}
+
+class SubmissionStatus {
+  <<enumeration>>
+  CORRECT
+  INCORRECT
+  ERROR
+}
+
+class Feedback {
+  +id: String
+  +isCorrect: Boolean
+  +message: String
+  +errorCode: String
+}
+
+PlayerSession "1" -- "0..*" Submission : makes
+Submission "1" --> "1" Task : for
+Submission "1" --> "0..1" Feedback : returns
+
+%% =======================
+%% Query history
+%% =======================
+class QueryHistory {
+  +id: String
+  +add(submissionId)
+  +list(): Submission[*]
+  +clear()
+}
+
+PlayerSession "1" *-- "1" QueryHistory : owns
+QueryHistory "1" --> "0..*" Submission : stores
+
+%% =======================
+%% Progress
+%% =======================
+class Progress {
+  +id: String
+  +currentLevel: Int
+  +completedTasksCount: Int
+  +lastPlayedAt: DateTime
+  +advanceLevel()
+}
+
+PlayerSession "1" *-- "1" Progress : has
+
+%% =======================
+%% Validator + Engine + DB
+%% =======================
+class TaskValidator {
+  +evaluate(sqlText, taskId): Feedback
+}
+
+class QueryEngine {
+  +execute(sqlText): QueryResult
+  +validate(actualResult, expectedHash): Boolean
+}
+
+class GameDatabase {
+  +runQuery(sqlText): QueryResult
+}
+
+class QueryResult {
+  +rows: Any[*]
+  +error: String
+}
+
+TaskValidator --> Task : readsExpected
+TaskValidator --> Submission : updatesStatus
+TaskValidator --> Feedback : creates
+TaskValidator --> Progress : updates
+
+TaskValidator --> QueryEngine : uses
+QueryEngine --> GameDatabase : queries

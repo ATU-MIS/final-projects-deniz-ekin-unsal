@@ -1,0 +1,42 @@
+ sequenceDiagram
+    autonumber
+    actor U as Kullanıcı
+    participant W as Web Arayüzü (SQL Dedektifi)
+    participant Q as SQL Motoru
+    participant D as Veritabanı
+    participant V as Doğrulama/Seviye Sistemi
+
+    U->>W: Siteyi açar
+    W-->>U: Arayüz + vaka senaryosu + görev yönergesi
+
+    loop Görev tamamlanana kadar
+        U->>W: Tablo seçer / SQL sorgusu yazar
+        W->>Q: Sorguyu çalıştır (query)
+        Q->>D: SQL'i yürüt
+        D-->>Q: Sonuç/Hata döndür
+        Q-->>W: Sonuç/Hata
+
+        alt SQL geçerli mi?
+            W-->>U: (No) Hata mesajı göster
+        else Evet
+            W-->>U: Sonuçları göster
+            U->>W: Sonuçları analiz eder / gerekirse yeni sorgu yazar
+        end
+
+        U->>W: "Devam" / Görevi kontrol et
+        W->>V: Görev durumunu doğrula
+        V-->>W: Tamamlandı mı? (E/H)
+
+        alt Görev tamamlandı mı?
+            W-->>U: (No) Yeni ipucu yok, sorguya devam
+        else Evet
+            W-->>U: "Görev tamamlandı" mesajı
+            W->>V: Sonraki seviye var mı?
+            V-->>W: Var mı? (E/H)
+            alt Başka seviye var mı?
+                W-->>U: (Evet) Yeni seviye yüklenir
+            else Hayır
+                W-->>U: Oyun özeti / Case solved
+            end
+        end
+    end
